@@ -11,6 +11,10 @@ sudo /bin/launchctl load -w /System/Library/LaunchDaemons/bootps.plist	        #
 
 To have it at startup, copy these files in to `/etc/`
 
-- [pf.conf](pf.conf) (if there's an existing pf.conf insert the contents right after existing nat-anchor statement)
+- [pf.conf](pf.conf) 
+  - if there's an existing pf.conf include this in it right after existing nat-anchor statement
+  - pf is disabled by default, so you have to
+    - reboot into recovery mode and `csrutil disable`
+    - modify `/System/Library/LaunchDaemons/com.apple.pfctl.plist` and [add `-e` to `ProgramArguments`](https://apple.stackexchange.com/questions/308182/how-to-launch-pf-at-startup) 
 - [sysctl.conf](sysctl.conf)
 - [bootpd.plist](bootpd.plist)
