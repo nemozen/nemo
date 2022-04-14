@@ -1,6 +1,8 @@
 # Mac OS X router conf
 
-Mac mini: public network (ISP) is on en0, private network is 10.0.0/24 on en1.
+Tested on Mac mini with Darwin 19.6.0. 
+
+Public network (ISP) is on en0, private network is 10.0.0/24 on en1.
 Command line:
 
 ```
