@@ -13,3 +13,5 @@
 (custom-set-variables
  '(send-mail-function (quote mail)))
 (custom-set-faces)
+(desktop-read)
+(desktop-save-mode 1)
