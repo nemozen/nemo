@@ -8,7 +8,7 @@
 	<integer>1</integer>
 	<key>dhcp_enabled</key>
 	<array>
-		<string>en1</string>
+		<string>en0</string>
 	</array>
 	<key>reply_threshold_seconds</key>
     	<integer>0</integer>

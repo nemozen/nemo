@@ -1,9 +1,12 @@
 # Mac OS X router conf
 
-Mac mini: public network (ISP) is on en0, private network is 10.0.0/24 on en1.
+Tested on Mac mini with Darwin 19.6.0. 
+
+Public network (ISP) is on en1, private network is 10.0.0/24 on en0.
 Command line:
 
 ```
+sudo ifconfig en0 10.0.0.1 255.255.255.0
 sudo sysctl net.inet.ip.forwarding=1						# IP forwarding
 sudo pfctl -f pf.conf -e							# NAT
 sudo /bin/launchctl load -w /System/Library/LaunchDaemons/bootps.plist	        # DHCP (with /etc/bootpd.list below)
