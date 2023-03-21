@@ -35,17 +35,19 @@ Basic router setup as above, but no need for NAT on client router:
 pfctl -F nat
 ```
 
-Client  `/usr/local/etc/wireguard/utun1.conf`
+Install wireguard
 ```
 $ brew install wireguard-tools
 ```
+
+Configuration  /usr/local/etc/wireguard/utun1.conf
 
 ```
 [Interface]
 PrivateKey = ***
 Address = 192.168.6.2/32
 DNS = 1.1.1.1
-MTU = 1420
+MTU = 1200
  
 [Peer]
 PublicKey = ***
@@ -68,7 +70,7 @@ $ wg pubkey < private.key > public.key
 $ sudo vi /etc/wireguard/wg0.conf
 ```
 
-Content of /etc/wireguard/wg0.conf
+Configuration /etc/wireguard/wg0.conf
 
 ```
 [Interface]
