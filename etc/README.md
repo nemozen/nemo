@@ -33,6 +33,9 @@ pfctl -F nat
 ```
 
 Client  `/usr/local/etc/wireguard/utun1.conf`
+```
+$ brew install wireguard-tools
+```
 
 ```
 [Interface]
@@ -55,12 +58,15 @@ sudo wg-quick up utun1
 
 ## Remote (ubuntu)
 
+```
 $ sudo apt-get install wireguard-tools
 $ (umask 0077; wg genkey > private.key)
 $ wg pubkey < private.key > public.key
 $ sudo vi /etc/wireguard/wg0.conf
+```
 
 Content of /etc/wireguard/wg0.conf
+
 ```
 [Interface]
 Address = 192.168.6.1/32
