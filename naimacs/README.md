@@ -24,6 +24,7 @@ Load [naimacs.el](naimacs.el) and run `M-x eval-region` on it.  Or put it in you
 ```
 (load-file "~/.emacs.d/naimacs.el")
 (global-set-key (kbd "C-c g") #'naimacs-chat-with-context)
+(global-set-key (kbd "C-c C-c") #'naimacs-clear-conversation-history)
 ```
 
 ## How to use
