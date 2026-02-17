@@ -1,6 +1,18 @@
+;;; naimacs.el --- A Gemini-powered coding assistant for Emacs  -*- lexical-binding: t; -*-
+
+;; Author: Nemo Semret
+;; Version: 0.1
+;; Keywords: ai, gemini, languages, help
+;; URL: https://github.com/nemozen/nemo/naimacs
+
+;;; Commentary:
+;; This assistant allows you to talk about the current buffer context with Google Gemini
+;; to help with codig, writing etc.
+
+;;; Code:
 (require 'json)
 
-(defun gemini-chat-with-context ()
+(defun naimacs-chat-with-context ()
   "Send current buffer to Gemini and show only the text response."
   (interactive)
   (let* ((api-key (getenv "GOOGLE_API_KEY"))
