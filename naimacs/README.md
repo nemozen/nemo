@@ -1,13 +1,30 @@
-Get API key from [https://aistudio.google.com/](Google AI Studio)
+# naimacs
+## emacs script to talk to Google Gemini
 
-Set it as an environment variable GOOGLE_API_KEY 
+An emacs script to talk to Google Gemini, using the current bufferas
+context for a conversation which opens in a related buffer.
 
-To change which model you want to use as your agent, edit the `model` variable in [naimacs.el].
+Get API key from [Google AI Studio](https://aistudio.google.com/) and set it as environment variable GOOGLE_API_KEY.
 
+To change which model you want to use as your agent, edit the `model` string in [naimacs.el](naimacs.el).
 Get list of available models:
-```curl https://generativelanguage.googleapis.com/v1beta/models?key=$GOOGLE_API_KEY ```
+```
+curl https://generativelanguage.googleapis.com/v1beta/models?key=$GOOGLE_API_KEY 
+```
 
-Requires markdown mode in emacs
-```sudo apt install elpa-markdown-mode```
+Output assumes markdown mode in emacs. If you don't have it, you can install with e.g.
+```
+sudo apt install elpa-markdown-mode
+```
+Otherwise you can comment out the markdown-mode line in [naimacs.el](naimacs.el).
 
 
+## How to use
+
+1. Load naimacs.el and run `M-x eval-region` on it.  Or put it in your `init.el`
+2. Go to the working buffer with your code or text. 
+3. Call `M-x gemini-chat-with-context`.
+3. Type your prompt in the chat subwindow and hit enter. The prompt gets sent to Gemini alaong with the contents of the buffer
+4. Response shows up in a buffer called`*Gemini-Response*`.
+
+<img src="naimacs-ui.png" width="50%" alt="Description" />
