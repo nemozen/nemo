@@ -20,6 +20,9 @@
 (require 'json)
 (require 'markdown-mode)
 
+(defconst naimacs-model-name "gemini-2.5-flash-lite"
+  "Name of Gemini model used by Naimacs.")
+
 (defvar naimacs-conversation-history nil
   "List storing history: '((\"user\" . \"text\") (\"model\" . \"text\")).")
 
@@ -40,7 +43,7 @@
   "naimacs: Context-aware chat with Gemini."
   (interactive)
   (let* ((api-key (getenv "GOOGLE_API_KEY"))
-	 (model "gemini-2.5-flash-lite")
+	 (model naimacs-model-name)
 	 (context (buffer-substring-no-properties (point-min) (point-max)))
 	 (prompt (read-string "Ask Gemini (C-c C-c to clear): "))
 	 (buf-name "*Gemini-Response*"))
@@ -116,7 +119,10 @@
 	    (progn
 	      ;; Reverse to display chronologically (newest first)
 	      (dolist (turn (reverse naimacs-conversation-history))
-		(insert (upcase (car turn)) ":\n")
+		;; Check if the role is "model" to display the model name
+		(if (string-equal (car turn) "model")
+		    (insert (format "%s:\n" (upcase naimacs-model-name)))
+		  (insert (upcase (car turn)) ":\n")) ; For "user" role
 		(insert (cdr turn))
 		(insert "\n\n"))
 	      (goto-char (point-min)))
