@@ -65,43 +65,43 @@
 	  (message "Gemini is thinking...")
 
 	  (let* ((json-object (json-read-from-string raw-response))
-	     ;; 1. Use assoc-default to find the candidates vector
-	     (candidates (assoc-default 'candidates json-object))
-	     ;; 2. Access vector element 0 safely
-	     (first-candidate (when (and (vectorp candidates) (> (length candidates) 0))
-				(elt candidates 0)))
-	     (content (assoc-default 'content first-candidate))
-	     (parts (assoc-default 'parts content))
-	     ;; 3. Access parts vector element 0 for the text
-	     (response-text (when (and (vectorp parts) (> (length parts) 0))
-			      (assoc-default 'text (elt parts 0)))))
+		 ;; 1. Use assoc-default to find the candidates vector
+		 (candidates (assoc-default 'candidates json-object))
+		 ;; 2. Access vector element 0 safely
+		 (first-candidate (when (and (vectorp candidates) (> (length candidates) 0))
+				    (elt candidates 0)))
+		 (content (assoc-default 'content first-candidate))
+		 (parts (assoc-default 'parts content))
+		 ;; 3. Access parts vector element 0 for the text
+		 (response-text (when (and (vectorp parts) (> (length parts) 0))
+				  (assoc-default 'text (elt parts 0)))))
 
-	(if (and response-text (not (zerop (length prompt))))
-	    (progn
-	      ;; Update history with dotted pairs
-	      (push `("user" . ,prompt) naimacs-conversation-history)
-	      (push `("model" . ,response-text) naimacs-conversation-history)
+	    (if (and response-text (not (zerop (length prompt))))
+		(progn
+		  ;; Update history with dotted pairs
+		  (push `("user" . ,prompt) naimacs-conversation-history)
+		  (push `("model" . ,response-text) naimacs-conversation-history)
 
-	      ;; Output to the correct buffer
-	      (with-current-buffer (get-buffer-create buf-name)
+		  ;; Output to the correct buffer
+		  (with-current-buffer (get-buffer-create buf-name)
+		    (let ((inhibit-read-only t))
+		      (erase-buffer)
+		      (insert "# Gemini Response\n\n")
+		      (insert response-text)
+		      (markdown-mode)
+		      (goto-char (point-min)))
+		    (display-buffer (current-buffer))))
+
+	      ;; Logic for handling API errors or safety blocks
+	      (with-current-buffer (get-buffer-create "*Gemini-Debug*")
 		(let ((inhibit-read-only t))
 		  (erase-buffer)
-		  (insert "# Gemini Response\n\n")
-		  (insert response-text)
-		  (markdown-mode)
-		  (goto-char (point-min)))
-		(display-buffer (current-buffer))))
-
-	  ;; Logic for handling API errors or safety blocks
-	  (with-current-buffer (get-buffer-create "*Gemini-Debug*")
-	    (let ((inhibit-read-only t))
-	      (erase-buffer)
-	      (insert "--- DEBUG: Extraction Failed ---\n")
-	      (insert "Check if 'finishReason' is 'SAFETY' or 'OTHER'.\n\n")
-	      (insert raw-response)
-	      (json-pretty-print-buffer))
-	    (display-buffer (current-buffer)))
-	  (error "naimacs: No text found in response (see *Gemini-Debug*)"))))))))
+		  (insert "--- DEBUG: Extraction Failed ---\n")
+		  (insert "Check if 'finishReason' is 'SAFETY' or 'OTHER'.\n\n")
+		  (insert raw-response)
+		  (json-pretty-print-buffer))
+		(display-buffer (current-buffer)))
+	      (error "naimacs: No text found in response (see *Gemini-Debug*)"))))))))
 
 
 (defun naimacs-show-conversation-history ()
