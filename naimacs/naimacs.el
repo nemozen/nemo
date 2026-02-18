@@ -83,7 +83,7 @@
 		(progn
 		  ;; Update history with dotted pairs
 		  (push `("user" . ,prompt) naimacs-conversation-history)
-		  (push `("model" . ,response-text) naimacs-conversation-history)
+		  (push `("model" . ,(concat (format "(%s)\n\n" naimacs-model-name) response-text)) naimacs-conversation-history)
 
 		  ;; Output to the correct buffer
 		  (with-current-buffer (get-buffer-create buf-name)
@@ -119,10 +119,7 @@
 	    (progn
 	      ;; Reverse to display chronologically (newest first)
 	      (dolist (turn (reverse naimacs-conversation-history))
-		;; Check if the role is "model" to display the model name
-		(if (string-equal (car turn) "model")
-		    (insert (format "%s:\n" (upcase naimacs-model-name)))
-		  (insert (upcase (car turn)) ":\n")) ; For "user" role
+		(insert (upcase (car turn)) ": ")
 		(insert (cdr turn))
 		(insert "\n\n"))
 	      (goto-char (point-min)))
