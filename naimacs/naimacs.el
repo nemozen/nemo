@@ -20,8 +20,8 @@
 (require 'json)
 (require 'markdown-mode)
 
-(defconst naimacs-model-name "gemini-2.5-flash-lite"
-  "Name of Gemini model used by Naimacs.")
+(defvar naimacs-model-name "gemini-2.5-flash-lite"
+  "Name of Gemini model used by naimacs.")
 
 (defvar naimacs-conversation-history nil
   "List storing history: '((\"user\" . \"text\") (\"model\" . \"text\")).")
@@ -117,7 +117,7 @@
 	(insert "# Gemini Conversation History\n\n")
 	(if naimacs-conversation-history
 	    (progn
-	      ;; Reverse to display chronologically (newest first)
+	      ;; Reverse to display chronologically (history is stored newest first)
 	      (dolist (turn (reverse naimacs-conversation-history))
 		(insert (upcase (car turn)) ": ")
 		(insert (cdr turn))
@@ -127,3 +127,13 @@
       (markdown-mode)
       (display-buffer hist-buf)))
   (message "Displaying Gemini conversation history in *Gemini-History*."))
+
+
+(defun naimacs-set-model (model-name)
+  "Set the Gemini model used by naimacs.
+Prompts for a new model name, with the current model as default.
+Example: `M-x naimacs-set-model` then type `gemini-1.5-pro`."
+  (interactive (list (read-string (format "Enter Gemini model name (current: %s): " naimacs-model-name)
+                                  naimacs-model-name)))
+  (setq naimacs-model-name model-name)
+  (message "naimacs model set to: %s" naimacs-model-name))
