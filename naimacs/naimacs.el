@@ -1,7 +1,7 @@
 ;;; naimacs.el --- A Gemini-powered coding assistant for Emacs  -*- lexical-binding: t; -*-
 
 ;; Author: Nemo Semret
-;; Version: 0.1.1 ; Incrementing version for new feature
+;; Version: 0.2.0 ; Fixed critical bugs and improved efficiency
 ;; Keywords: ai, gemini, languages, help, conversation
 ;; URL: https://github.com/nemozen/nemo/naimacs
 
@@ -15,6 +15,7 @@
 ;; 3. Start chatting: (naimacs-chat-with-context)
 ;; 4. To clear history: (naimacs-clear-conversation-history)
 ;; 5. To view history: (naimacs-show-conversation-history)
+;; 6. To change models: (naimacs-set-model)
 
 ;;; Code:
 (require 'json)
@@ -24,7 +25,7 @@
   "Name of Gemini model used by naimacs.")
 
 (defvar naimacs-conversation-history nil
-  "List storing history: '((\"user\" . \"text\") (\"model\" . \"text\")).")
+  "List storing conversation history. Each item is a list: '(\"user\" \"text\") or '(\"model\" \"text\" \"model-name\").")
 
 (defun naimacs-clear-conversation-history ()
   "Clears the current Gemini conversation history."
@@ -35,8 +36,11 @@
 (defun naimacs-format-conversation-history (history)
   "Formats history for Gemini API."
   (mapcar (lambda (turn)
-	    `((role . ,(car turn))
-	      (parts . [((text . ,(cdr turn)))])))
+	    (pcase turn
+	      ;; Match both user and model turns, extracting only role and text for the API.
+	      (`(,role ,text . ,_)
+	       `((role . ,(if (string-equal role "model") "model" "user")) ; Ensure role is valid
+		 (parts . [((text . ,text))])))))
 	  history))
 
 (defun naimacs-chat-with-context ()
@@ -59,6 +63,7 @@
 			      (parts . [((text . ,(concat "Context:\n" context "\n\nQuestion: " prompt)))])))
 	       (all-content-items (append formatted-history (list initial-msg)))
 	       (json-data (json-encode `((contents . ,all-content-items))))
+
 	       (url (concat "https://generativelanguage.googleapis.com/v1beta/models/" model ":generateContent?key=" api-key))
 	       (curl-command (concat "curl -s -X POST " (shell-quote-argument url)
 				     " -H 'Content-Type: application/json'"
@@ -68,28 +73,24 @@
 	  (message "Gemini is thinking...")
 
 	  (let* ((json-object (json-read-from-string raw-response))
-		 ;; 1. Use assoc-default to find the candidates vector
-		 (candidates (assoc-default 'candidates json-object))
-		 ;; 2. Access vector element 0 safely
+		 (candidates (cdr (assoc 'candidates json-object)))
 		 (first-candidate (when (and (vectorp candidates) (> (length candidates) 0))
 				    (elt candidates 0)))
-		 (content (assoc-default 'content first-candidate))
-		 (parts (assoc-default 'parts content))
-		 ;; 3. Access parts vector element 0 for the text
+		 (content (cdr (assoc 'content first-candidate)))
+		 (parts (cdr (assoc 'parts content)))
 		 (response-text (when (and (vectorp parts) (> (length parts) 0))
-				  (assoc-default 'text (elt parts 0)))))
+				  (cdr (assoc 'text (elt parts 0))))))
 
 	    (if (and response-text (not (zerop (length prompt))))
 		(progn
-		  ;; Update history with dotted pairs
-		  (push `("user" . ,prompt) naimacs-conversation-history)
-		  (push `("model" . ,(concat (format "(%s)\n\n" naimacs-model-name) response-text)) naimacs-conversation-history)
+		  (push `("user" ,prompt) naimacs-conversation-history)
+		  (push `("model" ,response-text ,naimacs-model-name) naimacs-conversation-history)
 
 		  ;; Output to the correct buffer
 		  (with-current-buffer (get-buffer-create buf-name)
 		    (let ((inhibit-read-only t))
 		      (erase-buffer)
-		      (insert "# Gemini Response\n\n")
+		      (insert (format "# Gemini Response (%s)\n\n" naimacs-model-name))
 		      (insert response-text)
 		      (markdown-mode)
 		      (goto-char (point-min)))
@@ -101,11 +102,12 @@
 		  (erase-buffer)
 		  (insert "--- DEBUG: Extraction Failed ---\n")
 		  (insert "Check if 'finishReason' is 'SAFETY' or 'OTHER'.\n\n")
+		  (insert "Raw Response:\n")
 		  (insert raw-response)
+		  (goto-char (point-min))
 		  (json-pretty-print-buffer))
 		(display-buffer (current-buffer)))
 	      (error "naimacs: No text found in response (see *Gemini-Debug*)"))))))))
-
 
 (defun naimacs-show-conversation-history ()
   "Displays the current Gemini conversation history."
@@ -119,21 +121,27 @@
 	    (progn
 	      ;; Reverse to display chronologically (history is stored newest first)
 	      (dolist (turn (reverse naimacs-conversation-history))
-		(insert (upcase (car turn)) ": ")
-		(insert (cdr turn))
-		(insert "\n\n"))
+		(pcase turn
+		  (`("user" ,text)
+		   (insert (format "**USER:**\n%s" text)))
+		  (`("model" ,text ,model)
+		   (insert (format "**MODEL (%s):**\n%s" model text)))
+		  ;; Fallback for any unexpected format
+		  (_ (insert (format "UNKNOWN: %s" turn))))
+		(insert "\n\n---\n\n"))
 	      (goto-char (point-min)))
 	  (insert "No history yet.\n")))
       (markdown-mode)
       (display-buffer hist-buf)))
   (message "Displaying Gemini conversation history in *Gemini-History*."))
 
-
 (defun naimacs-set-model (model-name)
   "Set the Gemini model used by naimacs.
 Prompts for a new model name, with the current model as default.
-Example: `M-x naimacs-set-model` then type `gemini-1.5-pro`."
+Example: `M-x naimacs-set-model` then type `gemini-1.5-pro-latest`."
   (interactive (list (read-string (format "Enter Gemini model name (current: %s): " naimacs-model-name)
-                                  naimacs-model-name)))
+				  naimacs-model-name)))
   (setq naimacs-model-name model-name)
   (message "naimacs model set to: %s" naimacs-model-name))
+
+(provide 'naimacs)
