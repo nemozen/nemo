@@ -1,13 +1,15 @@
 ;;; naimacs.el --- A Gemini-powered coding assistant for Emacs  -*- lexical-binding: t; -*-
 
 ;; Author: Nemo Semret
-;; Version: 0.2.0 ; Fixed critical bugs and improved efficiency
+;; Version: 0.2.0 
 ;; Keywords: ai, gemini, languages, help, conversation
 ;; URL: https://github.com/nemozen/nemo/naimacs
 
 ;;; Commentary:
-;; This assistant allows you to talk about the current buffer context with Google Gemini
-;; to help with coding, writing etc. It now supports conversational context.
+;; This assistant allows you to talk about the current buffer context
+;; with Google Gemini to help with coding, writing etc. Supports
+;; conversational context across buffers. Supports changing models in
+;; conversation.
 
 ;;; Example Usage:
 ;; 1. Set your API key: (setenv "GOOGLE_API_KEY" "YOUR_API_KEY")
@@ -63,14 +65,13 @@
 			      (parts . [((text . ,(concat "Context:\n" context "\n\nQuestion: " prompt)))])))
 	       (all-content-items (append formatted-history (list initial-msg)))
 	       (json-data (json-encode `((contents . ,all-content-items))))
-
 	       (url (concat "https://generativelanguage.googleapis.com/v1beta/models/" model ":generateContent?key=" api-key))
 	       (curl-command (concat "curl -s -X POST " (shell-quote-argument url)
 				     " -H 'Content-Type: application/json'"
 				     " -d " (shell-quote-argument json-data)))
+	       (message "Sending query to Gemini...")
 	       (raw-response (shell-command-to-string curl-command)))
 
-	  (message "Gemini is thinking...")
 
 	  (let* ((json-object (json-read-from-string raw-response))
 		 (candidates (cdr (assoc 'candidates json-object)))
