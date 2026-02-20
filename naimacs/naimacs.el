@@ -50,8 +50,12 @@
   (interactive)
   (let* ((api-key (getenv "GOOGLE_API_KEY"))
 	 (model naimacs-model-name)
-	 (context (buffer-substring-no-properties (point-min) (point-max)))
-	 (prompt (read-string "Ask Gemini (C-c C-c to clear): "))
+	 (context (if (use-region-p)
+		      (buffer-substring-no-properties (region-beginning) (region-end))
+		    (buffer-substring-no-properties (point-min) (point-max))))
+	 (prompt (read-string (if (use-region-p)
+				  "Ask Gemini (about selected region) (C-c C-c to clear history): "
+				"Ask Gemini (about current buffer) (C-c C-c to clear history): ")))
 	 (buf-name "*Gemini-Response*"))
 
     (unless api-key (error "Set GOOGLE_API_KEY first"))
