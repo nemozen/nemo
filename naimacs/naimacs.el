@@ -54,13 +54,13 @@
 		      (buffer-substring-no-properties (region-beginning) (region-end))
 		    (buffer-substring-no-properties (point-min) (point-max))))
 	 (prompt (read-string (if (use-region-p)
-				  "Ask Gemini (about selected region) (C-c C-c to clear history): "
-				"Ask Gemini (about current buffer) (C-c C-c to clear history): ")))
+				  "Ask Gemini (about selected region): "
+				"Ask Gemini (about current buffer): ")))
 	 (buf-name "*Gemini-Response*"))
 
     (unless api-key (error "Set GOOGLE_API_KEY first"))
 
-    (if (string-equal prompt "\C-c\C-c")
+    (if (string-equal prompt "\C-g")
 	(progn (naimacs-clear-conversation-history) (setq prompt ""))
 
       (unless (zerop (length prompt))
@@ -108,7 +108,8 @@
 			  (insert response-text)
 			  (markdown-mode)
 			  (goto-char (point-min)))
-			(display-buffer (current-buffer))))
+			(display-buffer (current-buffer))
+			(message "Response displayed in %s. Type M-x naimacs-show-conversation-history to see it." buf-name)))
 
 		  ;; Logic for handling other extraction failures (e.g., safety blocks)
 		  (with-current-buffer (get-buffer-create "*Gemini-Debug*")

@@ -20,11 +20,12 @@ sudo apt install elpa-markdown-mode
 ```
 Otherwise you can comment out the markdown-mode line in [naimacs.el](naimacs.el).
 
-Load [naimacs.el](naimacs.el) and run `M-x eval-region` on it.  Or put it in your `init.el`. You can also create keyboard shortcut:
+Load [naimacs.el](naimacs.el) and run `M-x eval-region` on it.  Or put it in your `init.el`. You can also create keyboard shortcuts:
 ```
 (load-file "~/.emacs.d/naimacs.el")
 (global-set-key (kbd "C-c g") #'naimacs-chat-with-context)
-(global-set-key (kbd "C-c C-c") #'naimacs-clear-conversation-history)
+(global-set-key (kbd "C-c h") #'naimacs-show-conversation-history)
+(global-set-key (kbd "C-c c") #'naimacs-clear-conversation-history)
 ```
 
 ## How to use
