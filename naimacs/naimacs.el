@@ -1,7 +1,7 @@
 ;;; naimacs.el --- A Gemini-powered coding assistant for Emacs  -*- lexical-binding: t; -*-
 
 ;; Author: Nemo Semret
-;; Version: 0.2.0 
+;; Version: 0.2.1
 ;; Keywords: ai, gemini, languages, help, conversation
 ;; URL: https://github.com/nemozen/nemo/naimacs
 
@@ -74,41 +74,50 @@
 
 
 	  (let* ((json-object (json-read-from-string raw-response))
-		 (candidates (cdr (assoc 'candidates json-object)))
-		 (first-candidate (when (and (vectorp candidates) (> (length candidates) 0))
-				    (elt candidates 0)))
-		 (content (cdr (assoc 'content first-candidate)))
-		 (parts (cdr (assoc 'parts content)))
-		 (response-text (when (and (vectorp parts) (> (length parts) 0))
-				  (cdr (assoc 'text (elt parts 0))))))
+		 (api-error (assoc 'error json-object)))
 
-	    (if (and response-text (not (zerop (length prompt))))
-		(progn
-		  (push `("user" ,prompt) naimacs-conversation-history)
-		  (push `("model" ,response-text ,naimacs-model-name) naimacs-conversation-history)
+	    (if api-error
+		;; Handle API error JSON
+		(let* ((error-details (cdr api-error))
+		       (error-message (cdr (assoc 'message error-details))))
+		  (error "naimacs API Error: %s" error-message))
 
-		  ;; Output to the correct buffer
-		  (with-current-buffer (get-buffer-create buf-name)
+	      ;; Handle API success JSON
+	      (let* ((candidates (cdr (assoc 'candidates json-object)))
+		     (first-candidate (when (and (vectorp candidates) (> (length candidates) 0))
+					(elt candidates 0)))
+		     (content (cdr (assoc 'content first-candidate)))
+		     (parts (cdr (assoc 'parts content)))
+		     (response-text (when (and (vectorp parts) (> (length parts) 0))
+				      (cdr (assoc 'text (elt parts 0))))))
+
+		(if (and response-text (not (zerop (length prompt))))
+		    (progn
+		      (push `("user" ,prompt) naimacs-conversation-history)
+		      (push `("model" ,response-text ,naimacs-model-name) naimacs-conversation-history)
+
+		      ;; Output to the correct buffer
+		      (with-current-buffer (get-buffer-create buf-name)
+			(let ((inhibit-read-only t))
+			  (erase-buffer)
+			  (insert (format "# Gemini Response (%s)\n\n" naimacs-model-name))
+			  (insert response-text)
+			  (markdown-mode)
+			  (goto-char (point-min)))
+			(display-buffer (current-buffer))))
+
+		  ;; Logic for handling other extraction failures (e.g., safety blocks)
+		  (with-current-buffer (get-buffer-create "*Gemini-Debug*")
 		    (let ((inhibit-read-only t))
 		      (erase-buffer)
-		      (insert (format "# Gemini Response (%s)\n\n" naimacs-model-name))
-		      (insert response-text)
-		      (markdown-mode)
-		      (goto-char (point-min)))
-		    (display-buffer (current-buffer))))
-
-	      ;; Logic for handling API errors or safety blocks
-	      (with-current-buffer (get-buffer-create "*Gemini-Debug*")
-		(let ((inhibit-read-only t))
-		  (erase-buffer)
-		  (insert "--- DEBUG: Extraction Failed ---\n")
-		  (insert "Check if 'finishReason' is 'SAFETY' or 'OTHER'.\n\n")
-		  (insert "Raw Response:\n")
-		  (insert raw-response)
-		  (goto-char (point-min))
-		  (json-pretty-print-buffer))
-		(display-buffer (current-buffer)))
-	      (error "naimacs: No text found in response (see *Gemini-Debug*)"))))))))
+		      (insert "--- DEBUG: Extraction Failed ---\n")
+		      (insert "Check if 'finishReason' is 'SAFETY' or 'OTHER'.\n\n")
+		      (insert "Raw Response:\n")
+		      (insert raw-response)
+		      (goto-char (point-min))
+		      (json-pretty-print-buffer))
+		    (display-buffer (current-buffer)))
+		  (error "naimacs: No text found in response (see *Gemini-Debug*)"))))))))))
 
 (defun naimacs-show-conversation-history ()
   "Displays the current Gemini conversation history."
