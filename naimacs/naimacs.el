@@ -1,7 +1,7 @@
 ;;; naimacs.el --- A Gemini-powered coding assistant for Emacs  -*- lexical-binding: t; -*-
 
 ;; Author: Nemo Semret
-;; Version: 0.2.1
+;; Version: 0.3.1
 ;; Keywords: ai, gemini, languages, help, conversation
 ;; URL: https://github.com/nemozen/nemo/naimacs
 
@@ -14,10 +14,11 @@
 ;;; Example Usage:
 ;; 1. Set your API key: (setenv "GOOGLE_API_KEY" "YOUR_API_KEY")
 ;; 2. Load this file: (load "naimacs.el")
-;; 3. Start chatting: (naimacs-chat-with-context)
-;; 4. To clear history: (naimacs-clear-conversation-history)
-;; 5. To view history: (naimacs-show-conversation-history)
-;; 6. To change models: (naimacs-set-model)
+;; 3. Start chatting: M-x naimacs-chat-with-context
+;; 4. To clear history: M-x naimacs-clear-conversation-history
+;; 5. To view history: M-x naimacs-show-conversation-history
+;; 6. To change models: M-x naimacs-set-model
+;; 7. To list models: M-x naimacs-list-models
 
 ;;; Code:
 (require 'json)
@@ -70,6 +71,7 @@
 	       (all-content-items (append formatted-history (list initial-msg)))
 	       (json-data (json-encode `((contents . ,all-content-items))))
 	       (url (concat "https://generativelanguage.googleapis.com/v1beta/models/" model ":generateContent?key=" api-key))
+	       ;; *** FIXED LINE BELOW ***
 	       (curl-command (concat "curl -s -X POST " (shell-quote-argument url)
 				     " -H 'Content-Type: application/json'"
 				     " -d " (shell-quote-argument json-data)))
@@ -158,5 +160,44 @@ Example: `M-x naimacs-set-model` then type `gemini-1.5-pro-latest`."
 				  naimacs-model-name)))
   (setq naimacs-model-name model-name)
   (message "naimacs model set to: %s" naimacs-model-name))
+
+
+(defun naimacs-list-models ()
+  "Lists available Gemini models from the API."
+  (interactive)
+  (let* ((api-key (getenv "GOOGLE_API_KEY"))
+         (buf-name "*Gemini-Models*"))
+    (unless api-key (error "Set GOOGLE_API_KEY first"))
+
+    (let* ((url (concat "https://generativelanguage.googleapis.com/v1beta/models?key=" api-key))
+           (curl-command (concat "curl -s -H 'Content-Type: application/json' "
+                                 (shell-quote-argument url))))
+      (message "Fetching available models from Gemini...")
+      (let ((raw-response (shell-command-to-string curl-command)))
+        (let* ((json-object (json-read-from-string raw-response))
+               ;; The default json.el uses SYMBOL keys, so 'error is correct.
+               (api-error (assoc 'error json-object)))
+          (if api-error
+              (error "naimacs API Error: %s" (cdr (assoc 'message (cdr api-error))))
+            ;; Use the symbol 'models to get the vector of models.
+            (let ((models (cdr (assoc 'models json-object))))
+              (if models
+                  (with-current-buffer (get-buffer-create buf-name)
+                    (let ((inhibit-read-only t))
+                      (erase-buffer)
+                      (insert "# Available Gemini Models\n\n")
+                      (seq-doseq (model models)
+                        (let* ((full-name (cdr (assoc 'name model)))
+                               (short-name (car (last (split-string full-name "/"))))
+                               (display-name (cdr (assoc 'displayName model)))
+                               (description (or (cdr (assoc 'description model)) "No description available.")))
+                          (insert (format "## %s\n\n" display-name))
+                          (insert (format "**Model ID:** `%s`\n" short-name))
+                          (insert (format "**Description:** %s\n\n" description))))
+                    (markdown-mode)
+                    (goto-char (point-min)))
+                  (display-buffer (current-buffer))
+                  (message "Available models listed in %s" buf-name))
+                (error "naimacs: Could not parse models from API response.")))))))))
 
 (provide 'naimacs)
