@@ -71,7 +71,6 @@
 	       (all-content-items (append formatted-history (list initial-msg)))
 	       (json-data (json-encode `((contents . ,all-content-items))))
 	       (url (concat "https://generativelanguage.googleapis.com/v1beta/models/" model ":generateContent?key=" api-key))
-	       ;; *** FIXED LINE BELOW ***
 	       (curl-command (concat "curl -s -X POST " (shell-quote-argument url)
 				     " -H 'Content-Type: application/json'"
 				     " -d " (shell-quote-argument json-data)))

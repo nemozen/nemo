@@ -8,12 +8,6 @@ An Elisp script to talk to Google Gemini, using the current buffer as context fo
 
 Get API key from [Google AI Studio](https://aistudio.google.com/) and set it as environment variable GOOGLE_API_KEY.
 
-To change which model you want to use as your agent, edit the `model` string in [naimacs.el](naimacs.el).
-Get list of available models:
-```
-curl https://generativelanguage.googleapis.com/v1beta/models?key=$GOOGLE_API_KEY
-```
-
 Output assumes markdown mode in emacs. If you don't have it, you can install with e.g.
 ```
 sudo apt install elpa-markdown-mode
@@ -32,7 +26,13 @@ Load [naimacs.el](naimacs.el) and run `M-x eval-region` on it.  Or put it in you
 
 1. Go to the working buffer with your code or text.
 2. Call `M-x naimacs-chat-with-context`
-3. Type your prompt in the chat subwindow and hit enter. The prompt gets sent to Gemini along with the contents of the buffer
+3. Type your prompt in the chat subwindow and hit enter. The prompt gets sent to Gemini along with the contents of the buffer (or the currently selected region if any)
 4. Response shows up in a buffer called`*Gemini-Response*`.
+
+You can also
+5. Clear history: `M-x naimacs-clear-conversation-history`
+6. View history: `M-x naimacs-show-conversation-history`
+7. Change models: `M-x naimacs-set-model`
+8. List models: `M-x naimacs-list-models`
 
 <img src="naimacs-ui.png" width="50%" alt="Description" />
