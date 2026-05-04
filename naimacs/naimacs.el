@@ -24,7 +24,7 @@
 (require 'json)
 (require 'markdown-mode)
 
-(defvar naimacs-model-name "gemini-2.5-flash-lite"
+(defvar naimacs-model-name "gemini-pro-latest"
   "Name of Gemini model used by naimacs.")
 
 (defvar naimacs-conversation-history nil
