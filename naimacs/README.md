@@ -27,6 +27,7 @@ Load [naimacs.el](naimacs.el) and run `M-x eval-region` on it.  Or put it in you
 4. Response shows up in a buffer called `*Gemini-Response*`, or is inserted directly into your text.
 
 You can also
+
 5. Clear history: `M-x naimacs-clear-conversation-history`
 6. View history: `M-x naimacs-show-conversation-history`
 7. Change models: `M-x naimacs-set-model`
