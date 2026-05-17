@@ -23,6 +23,7 @@
 ;;; Code:
 (require 'json)
 (require 'markdown-mode)
+(require 'subr-x)
 
 (defvar naimacs-model-name "gemini-pro-latest"
   "Name of Gemini model used by naimacs.")
@@ -119,6 +120,87 @@
 		      (insert "--- DEBUG: Extraction Failed ---\n")
 		      (insert "Check if 'finishReason' is 'SAFETY' or 'OTHER'.\n\n")
 		      (insert "Raw Response:\n")
+		      (insert raw-response)
+		      (goto-char (point-min))
+		      (json-pretty-print-buffer))
+		    (display-buffer (current-buffer)))
+		  (error "naimacs: No text found in response (see *Gemini-Debug*)"))))))))))
+
+
+(defun naimacs-insert-at-point ()
+  "Ask Gemini a question and insert the raw response directly at the cursor.
+Modifies the prompt to ensure no markdown or conversational filler is included."
+  (interactive)
+  (let* ((api-key (getenv "GOOGLE_API_KEY"))
+	 (model naimacs-model-name)
+	 ;; Get context from region or whole buffer
+	 (context (if (use-region-p)
+		      (buffer-substring-no-properties (region-beginning) (region-end))
+		    (buffer-substring-no-properties (point-min) (point-max))))
+	 (prompt (read-string (if (use-region-p)
+				  "Ask Gemini to generate code (based on region): "
+				"Ask Gemini to generate code (based on buffer): ")))
+         
+         ;; 1. Modify the prompt to force raw output
+         (insertion-instruction "\n\n[SYSTEM INSTRUCTION: You are generating text to be inserted directly into a source code file at the user's cursor. Output ONLY the raw text or code required. DO NOT wrap the code in markdown blocks (e.g., no ```). DO NOT include greetings, explanations, or conversational filler. Just output the exact text to insert.]")
+         (full-prompt (concat "Context:\n" context "\n\nQuestion: " prompt insertion-instruction)))
+
+    (unless api-key (error "Set GOOGLE_API_KEY first"))
+
+    (if (string-equal prompt "\C-g")
+	(progn (naimacs-clear-conversation-history) (setq prompt ""))
+
+      (unless (zerop (length prompt))
+	(let* ((formatted-history (naimacs-format-conversation-history (reverse naimacs-conversation-history)))
+	       (initial-msg `((role . "user")
+			      (parts . [((text . ,full-prompt))])))
+	       (all-content-items (append formatted-history (list initial-msg)))
+	       (json-data (json-encode `((contents . ,all-content-items))))
+	       (url (concat "https://generativelanguage.googleapis.com/v1beta/models/" model ":generateContent?key=" api-key))
+	       (curl-command (concat "curl -s -X POST " (shell-quote-argument url)
+				     " -H 'Content-Type: application/json'"
+				     " -d " (shell-quote-argument json-data)))
+	       (message "Asking Gemini to generate code for insertion...")
+	       ;; The curl call is synchronous, so the current buffer remains the one we started in
+	       (raw-response (shell-command-to-string curl-command)))
+
+	  (let* ((json-object (json-read-from-string raw-response))
+		 (api-error (assoc 'error json-object)))
+
+	    (if api-error
+		(let* ((error-details (cdr api-error))
+		       (error-message (cdr (assoc 'message error-details))))
+		  (error "naimacs API Error: %s" error-message))
+
+	      (let* ((candidates (cdr (assoc 'candidates json-object)))
+		     (first-candidate (when (and (vectorp candidates) (> (length candidates) 0))
+					(elt candidates 0)))
+		     (content (cdr (assoc 'content first-candidate)))
+		     (parts (cdr (assoc 'parts content)))
+		     (response-text (when (and (vectorp parts) (> (length parts) 0))
+				      (cdr (assoc 'text (elt parts 0))))))
+
+		(if (and response-text (not (zerop (length prompt))))
+		    (progn
+                      ;; 2. Optional: Strip leading/trailing markdown backticks just in case 
+                      ;; the AI ignores the system prompt.
+                      (setq response-text (replace-regexp-in-string "^```[a-z]*\n\\|```$" "" response-text))
+                      (setq response-text (string-trim response-text))
+
+		      ;; 3. Record history using the ORIGINAL prompt, not the modified one
+		      (push `("user" ,prompt) naimacs-conversation-history)
+		      (push `("model" ,response-text ,naimacs-model-name) naimacs-conversation-history)
+
+		      ;; 4. Insert directly into the current buffer at point
+                      (push-mark) ;; Save current location so user can jump back easily
+		      (insert response-text)
+		      (message "Successfully inserted response from Gemini."))
+
+		  ;; Debugging fallback
+		  (with-current-buffer (get-buffer-create "*Gemini-Debug*")
+		    (let ((inhibit-read-only t))
+		      (erase-buffer)
+		      (insert "--- DEBUG: Extraction Failed ---\n")
 		      (insert raw-response)
 		      (goto-char (point-min))
 		      (json-pretty-print-buffer))
