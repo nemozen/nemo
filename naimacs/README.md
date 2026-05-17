@@ -2,32 +2,29 @@
 
 ## AI coding assistant in Emacs
 
-An Elisp script to talk to Google Gemini, using the current buffer as context for a conversation which opens in a related buffer.
+An Elisp script to talk to Google Gemini, using the current buffer as context for a conversation which opens in a related buffer, or to generate and insert code directly into your file.
 
 ## Setup
 
 Get API key from [Google AI Studio](https://aistudio.google.com/) and set it as environment variable GOOGLE_API_KEY.
 
 Output assumes markdown mode in emacs. If you don't have it, you can install with e.g.
-```
 sudo apt install elpa-markdown-mode
-```
 Otherwise you can comment out the markdown-mode line in [naimacs.el](naimacs.el).
 
 Load [naimacs.el](naimacs.el) and run `M-x eval-region` on it.  Or put it in your `init.el`. You can also create keyboard shortcuts:
-```
 (load-file "~/.emacs.d/naimacs.el")
 (global-set-key (kbd "C-c g") #'naimacs-chat-with-context)
+(global-set-key (kbd "C-c i") #'naimacs-insert-at-point)
 (global-set-key (kbd "C-c h") #'naimacs-show-conversation-history)
 (global-set-key (kbd "C-c c") #'naimacs-clear-conversation-history)
-```
 
 ## How to use
 
 1. Go to the working buffer with your code or text.
-2. Call `M-x naimacs-chat-with-context`
-3. Type your prompt in the chat subwindow and hit enter. The prompt gets sent to Gemini along with the contents of the buffer (or the currently selected region if any)
-4. Response shows up in a buffer called`*Gemini-Response*`.
+2. Call `M-x naimacs-chat-with-context` to chat in a separate buffer, or `M-x naimacs-insert-at-point` to have Gemini write code directly at your cursor.
+3. Type your prompt in the minibuffer and hit enter. The prompt gets sent to Gemini along with the contents of the buffer (or the currently selected region if any)
+4. Response shows up in a buffer called `*Gemini-Response*`, or is inserted directly into your text.
 
 You can also
 5. Clear history: `M-x naimacs-clear-conversation-history`
