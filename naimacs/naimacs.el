@@ -143,17 +143,20 @@
 
 (defun naimacs-insert-at-point ()
   "Ask Gemini a question and insert the raw response directly at the cursor.
+If a region is active, the response will overwrite the selected region.
 Modifies the prompt to ensure no markdown or conversational filler is included."
   (interactive)
   (unless (getenv "GOOGLE_API_KEY") (error "Set GOOGLE_API_KEY first"))
   
-  (let* ((context (if (use-region-p)
-		      (buffer-substring-no-properties (region-beginning) (region-end))
+  (let* ((has-region (use-region-p))
+         (r-start (when has-region (region-beginning)))
+         (r-end (when has-region (region-end)))
+         (context (if has-region
+		      (buffer-substring-no-properties r-start r-end)
 		    (buffer-substring-no-properties (point-min) (point-max))))
-	 (prompt (read-string (if (use-region-p)
+	 (prompt (read-string (if has-region
 				  "Ask Gemini to generate code (based on region): "
 				"Ask Gemini to generate code (based on buffer): ")))
-         ;; 1. Modify the prompt to force raw output
          (insertion-instruction "\n\n[SYSTEM INSTRUCTION: You are generating text to be inserted directly into a source code file at the user's cursor. Output ONLY the raw text or code required. DO NOT wrap the code in markdown blocks (e.g., no ```). DO NOT include greetings, explanations, or conversational filler. Just output the exact text to insert.]"))
 
     (if (string-equal prompt "\C-g")
@@ -165,19 +168,17 @@ Modifies the prompt to ensure no markdown or conversational filler is included."
                (response-text (naimacs--send-request full-prompt)))
           
           (when response-text
-            ;; 2. Strip leading/trailing markdown backticks just in case the AI ignores the system prompt.
             (setq response-text (replace-regexp-in-string "^```[a-z]*\n\\|```$" "" response-text))
             (setq response-text (string-trim response-text))
 
-            ;; 3. Record history using the ORIGINAL prompt, not the modified one
             (push `("user" ,prompt) naimacs-conversation-history)
             (push `("model" ,response-text ,naimacs-model-name) naimacs-conversation-history)
 
-            ;; 4. Insert directly into the current buffer at point
-            (push-mark) ;; Save current location so user can jump back easily
+            (when has-region
+              (delete-region r-start r-end))
+            (push-mark)
             (insert response-text)
             (message "Successfully inserted response from Gemini.")))))))
-
 
 (defun naimacs-show-conversation-history ()
   "Displays the current Gemini conversation history."
