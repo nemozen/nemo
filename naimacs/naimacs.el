@@ -1,7 +1,7 @@
 ;;; naimacs.el --- A Gemini-powered coding assistant for Emacs  -*- lexical-binding: t; -*-
 
 ;; Author: Nemo Semret
-;; Version: 0.4.1
+;; Version: 0.5.0
 ;; Keywords: ai, gemini, languages, help, conversation
 ;; URL: https://github.com/nemozen/nemo/naimacs
 
@@ -20,6 +20,8 @@
 ;; 6. To view history: M-x naimacs-show-conversation-history
 ;; 7. To change models: M-x naimacs-set-model
 ;; 8. To list models: M-x naimacs-list-models
+;; 9. To save history: M-x naimacs-save-conversation-history
+;; 10. To load history: M-x naimacs-load-conversation-history
 
 ;;; Code:
 (require 'json)
@@ -32,11 +34,50 @@
 (defvar naimacs-conversation-history nil
   "List storing conversation history. Each item is a list: '(\"user\" \"text\") or '(\"model\" \"text\" \"model-name\").")
 
+(defvar naimacs-history-default-file ".naimacs_history"
+  "Default filename for saving/loading naimacs conversation history.")
+
+(defun naimacs--prompt-to-save-history-if-needed ()
+  "Helper to prompt user to save history if current history is not empty."
+  (when (and naimacs-conversation-history
+             (y-or-n-p "Current conversation history is not empty. Save it first? "))
+    (call-interactively #'naimacs-save-conversation-history)))
+
 (defun naimacs-clear-conversation-history ()
-  "Clears the current Gemini conversation history."
+  "Clears the current Gemini conversation history.
+Prompts to save first if history exists."
   (interactive)
+  (naimacs--prompt-to-save-history-if-needed)
   (setq naimacs-conversation-history nil)
   (message "Gemini conversation history cleared."))
+
+(defun naimacs-save-conversation-history (file)
+  "Save the current Gemini conversation history to FILE."
+  (interactive
+   (list (read-file-name (format "Save history to file (default %s): " naimacs-history-default-file)
+                         nil naimacs-history-default-file)))
+  (if (not naimacs-conversation-history)
+      (message "No conversation history to save.")
+    (with-temp-file file
+      (let ((print-length nil)
+            (print-level nil))
+        (prin1 naimacs-conversation-history (current-buffer))))
+    (message "Conversation history successfully saved to %s" file)))
+
+(defun naimacs-load-conversation-history (file)
+  "Load Gemini conversation history from FILE, replacing current history.
+Prompts to save the current history first if it exists."
+  (interactive
+   (list (read-file-name (format "Load history from file (default %s): " naimacs-history-default-file)
+                         nil naimacs-history-default-file t)))
+  (if (not (file-exists-p file))
+      (user-error "History file not found: %s" file)
+    (naimacs--prompt-to-save-history-if-needed)
+    (with-temp-buffer
+      (insert-file-contents file)
+      (goto-char (point-min))
+      (setq naimacs-conversation-history (read (current-buffer))))
+    (message "Conversation history loaded from %s" file)))
 
 (defun naimacs-format-conversation-history (history)
   "Formats history for Gemini API."
