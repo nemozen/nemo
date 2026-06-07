@@ -22,8 +22,7 @@ Load [naimacs.el](naimacs.el) and run `M-x eval-region` on it.  Or put it in you
 (global-set-key (kbd "C-c h") #'naimacs-show-conversation-history)
 (global-set-key (kbd "C-c c") #'naimacs-clear-conversation-history)
 (global-set-key (kbd "C-c s") #'naimacs-save-conversation-history)
-(global-set-key (kbd "C-c l")
- #'naimacs-load-conversation-history)
+(global-set-key (kbd "C-c l") #'naimacs-load-conversation-history)
 ```
 
 ## How to use
