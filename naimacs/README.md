@@ -10,13 +10,17 @@ You can also save and load these conversations to disk, allowing you to maintain
 
 Get API key from [Google AI Studio](https://aistudio.google.com/) and set it as environment variable GOOGLE_API_KEY.
 
-Output assumes markdown mode in emacs. If you don't have it, you can install with e.g.
+Output assumes markdown mode in emacs. If you don't have it, you can install it with e.g.
 `sudo apt install elpa-markdown-mode`.
 Otherwise you can comment out the markdown-mode line in [naimacs.el](naimacs.el).
 
-Load [naimacs.el](naimacs.el) and run `M-x eval-region` on it.  Or put it in your `init.el` along with keyboard shortcuts:
+Load [naimacs.el](naimacs.el) and run `M-x eval-buffer` on it.  Or put it in your `init.el` :
 ```
 (load-file "~/.emacs.d/naimacs.el")
+```
+
+Define keyboard shortcuts (optional):
+```
 (global-set-key (kbd "C-c g") #'naimacs-chat-with-context)
 (global-set-key (kbd "C-c i") #'naimacs-insert-at-point)
 (global-set-key (kbd "C-c h") #'naimacs-show-conversation-history)
