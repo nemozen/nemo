@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>EnvironmentVariables</key>
+   <dict>
+       <key>PATH</key>
+       <string>/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin</string>
+    </dict>
+    <key>Label</key>
+    <string>com.wireguard.utun1</string>
+    <key>ProgramArguments</key>
+    <array>
+        <string>/usr/local/bin/wg-quick</string>
+        <string>up</string>
+        <string>utun2</string>
+    </array>
+    <key>RunAtLoad</key>
+    <true/>
+    <key>KeepAlive</key>
+    <false/>
+    <key>StandardErrorPath</key>
+    <string>/var/log/wireguard_utun1.err.log</string>
+    <key>StandardOutPath</key>
+    <string>/var/log/wireguard_utun1.out.log</string>
+</dict>
+</plist>
