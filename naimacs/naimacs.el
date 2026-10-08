@@ -1,7 +1,7 @@
 ;;; naimacs.el --- A Gemini-powered coding assistant for Emacs  -*- lexical-binding: t; -*-
 
 ;; Author: Nemo Semret
-;; Version: 0.5.0
+;; Version: 0.5.1
 ;; Keywords: ai, gemini, languages, help, conversation
 ;; URL: https://github.com/nemozen/nemo/naimacs
 
@@ -240,11 +240,13 @@ Modifies the prompt to ensure no markdown or conversational filler is included."
 		   (insert (format "**MODEL (%s):**\n%s" model text)))
 		  ;; Fallback for any unexpected format
 		  (_ (insert (format "UNKNOWN: %s" turn))))
-		(insert "\n\n---\n\n"))
-	      (goto-char (point-min)))
+		(insert "\n\n---\n\n")))
 	  (insert "No history yet.\n")))
       (markdown-mode)
-      (display-buffer hist-buf)))
+      (goto-char (point-max))
+      (let ((win (display-buffer hist-buf)))
+        (when win
+          (set-window-point win (point-max))))))
   (message "Displaying Gemini conversation history in *Gemini-History*."))
 
 (defun naimacs-set-model (model-name)
