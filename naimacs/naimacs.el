@@ -1,7 +1,7 @@
 ;;; naimacs.el --- An AI coding assistant for Emacs  -*- lexical-binding: t; -*-
 
 ;; Author: Nemo Semret
-;; Version: 0.5.1
+;; Version: 0.5.2
 ;; Keywords: ai, gemini, languages, help, conversation
 ;; URL: https://github.com/nemozen/nemo/naimacs
 
@@ -103,12 +103,26 @@ Prompts to save the current history first if it exists."
 	 (all-content-items (append formatted-history (list initial-msg)))
 	 (json-data (json-encode `((contents . ,all-content-items))))
 	 (url (concat "https://generativelanguage.googleapis.com/v1beta/models/" model ":generateContent?key=" api-key))
-	 (curl-command (concat "curl -s -X POST " (shell-quote-argument url)
-			       " -H 'Content-Type: application/json'"
-			       " -d " (shell-quote-argument json-data)))
-	 (raw-response (shell-command-to-string curl-command)))
+	 (temp-file (make-temp-file "naimacs-req-"))
+	 (raw-response nil))
 
-    (let* ((json-object (json-read-from-string raw-response))
+    ;; Safely write to temp file and execute curl, ensuring the file is cleaned up afterward
+    (unwind-protect
+	(progn
+	  (with-temp-file temp-file
+	    (insert json-data))
+	  (let ((curl-command (concat "curl -s -X POST " (shell-quote-argument url)
+				      " -H 'Content-Type: application/json'"
+				      " -d @" (shell-quote-argument temp-file))))
+	    (setq raw-response (shell-command-to-string curl-command))))
+      ;; Cleanup temp file
+      (when (file-exists-p temp-file)
+	(delete-file temp-file)))
+
+    ;; Safely parse the JSON to catch HTML/Server errors gracefully
+    (let* ((json-object (condition-case err
+			    (json-read-from-string raw-response)
+			  (error (error "naimacs JSON Parse Error. Raw response: %s" raw-response))))
 	   (api-error (assoc 'error json-object)))
 
       (if api-error
@@ -149,6 +163,10 @@ Prompts to save the current history first if it exists."
   "naimacs: Context-aware chat with Naimacs."
   (interactive)
   (unless (getenv "GOOGLE_API_KEY") (error "Set GOOGLE_API_KEY first"))
+
+  (when (and (member (buffer-name) '("*Naimacs-History*" "*Naimacs-Response*"))
+	     (not (use-region-p)))
+    (user-error "Cannot use an entire Naimacs output buffer as context. Please select a region or switch to a code buffer."))
 
   (let* ((context (if (use-region-p)
 		      (buffer-substring-no-properties (region-beginning) (region-end))
